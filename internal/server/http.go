@@ -40,6 +40,7 @@ func NewHttpServer(addr string) *http.Server { //Creacion de funcion la cual dev
 	r.HandleFunc("/addActivity", activities.addActivity).Methods("POST") //POST que funcione en root /
 	// r.HandleFunc("/getActivity/{id}", activities.getActivity).Methods("GET") //POST que funcione en root /
 	r.HandleFunc("/getActivity", activities.getActivity).Methods("GET") //POST que funcione en root /
+	r.HandleFunc("/editActivity", activities.editActivity).Methods("PATCH") //POST que funcione en root /
 
 	return &http.Server{
 		Addr: addr,
@@ -116,5 +117,47 @@ func (s *ActivitiesHandler) getActivity(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 }
+
+func (s *ActivitiesHandler) editActivity(w http.ResponseWriter, r *http.Request){
+	if r.Method != http.MethodPatch {
+		http.Error(w, "Unable to use this route because verb", http.StatusMethodNotAllowed)
+		return
+	}
+	//Marshaling data
+	var newData ActivityDocument
+	unmarshalErr := json.NewDecoder(r.Body).Decode(&newData)
+	if unmarshalErr != nil {
+		http.Error(w, "Cannot convert data", http.StatusInternalServerError)
+		return
+	}
+
+	//Search for the given activity id
+	foundActivity := false
+	for _, activity := range s.Activities.activities {
+		if activity.ID == newData.Activity.ID {
+			foundActivity = true
+		}
+	}
+	if foundActivity == false {
+		http.Error(w, "Given id could not be found", http.StatusConflict)
+		return
+	}
+
+	//Manage to give a json response
+	actId, ok := s.Activities.EditActivity(newData.Activity)
+	if ok != nil {
+		http.Error(w, "Edit activity could not be applied. Maybe data does not exist", http.StatusConflict)
+		return
+	}
+	response := &ResponseIDDocument{
+		ID: actId,
+	}
+	resErr := json.NewEncoder(w).Encode(response)
+	if resErr != nil {
+		http.Error(w, "Cannot procesate request", http.StatusConflict)
+	}
+}
+
+
 
 

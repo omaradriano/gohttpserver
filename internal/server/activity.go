@@ -28,6 +28,10 @@ type Activities struct { //Este struct guarda una lista de Activity
 */
 func (c *Activities) InsertActivity(act Activity) uint64 { 
 	act.ID = uint64(len(c.activities)) + 1 
+	act.AddedDate = time.Now()
+	limitDate := act.AddedDate
+	act.LimitDate = limitDate.AddDate(0,0,5)
+	act.IsCompleted = false
 	c.activities = append(c.activities, act) 
 	return act.ID 
 }
@@ -39,5 +43,30 @@ func (c *Activities) GetActivity(id uint64) (Activity, error) {
 
 	return c.activities[id-1], nil
 }
+
+func (c *Activities) EditActivity(act Activity) (uint64, error) {
+	if act.ID > uint64(len(c.activities)) {
+		return 0, ErrIDNotFound
+	}
+	oldData := c.activities[act.ID-1]
+	if act.Title != "" {
+		oldData.Title = act.Title
+	}
+	if act.Description != "" {
+		oldData.Description = act.Description
+	}
+	if !act.LimitDate.IsZero() {
+		oldData.LimitDate = act.LimitDate
+	}
+	oldData.IsCompleted = act.IsCompleted
+
+	c.activities[act.ID-1] = oldData
+
+	return oldData.ID, nil
+}
+
+// func (c *Activities) DeleteActivity(id uint64) uint64 {
+
+// }
 
 

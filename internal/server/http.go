@@ -147,19 +147,10 @@ func (s *ActivitiesHandler) editActivity(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	//Search for the given activity id
-	for _, activity := range s.Activities.activities {
-		if activity.ID == newData.Activity.ID {
-			response = ResponseError{Error:"Given id could not be found"}
-			response.LaunchResponse(w, http.StatusBadRequest)
-			return
-		}
-	}
-
 	//Manage to give a json response
 	actId, ok := s.Activities.EditActivity(newData.Activity)
 	if ok != nil {
-		response = ResponseError{Error: "Edit activity could not be applied. Maybe data does not exist"}
+		response = ResponseError{Error: ok.Error()}
 		response.LaunchResponse(w, http.StatusOK)
 		return
 	}
@@ -194,7 +185,6 @@ func (s *ActivitiesHandler) deleteActivity(w http.ResponseWriter, r *http.Reques
 	response = ResponseIDDocument{ID:id}
 	response.LaunchResponse(w, http.StatusOK)
 }
-
 
 /*
 	* Implementations for LaunchResponse

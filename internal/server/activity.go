@@ -46,29 +46,26 @@ func (c *Activities) GetActivity(id uint64) (Activity, error) {
 			return activity, nil
 		}
 	}
-
 	return Activity{}, ErrIDNotFound
 }
 
 func (c *Activities) EditActivity(act Activity) (uint64, error) {
-	if act.ID > uint64(len(c.activities)) {
-		return 0, ErrIDNotFound
+	for i, activity := range c.activities {
+		if activity.ID == act.ID {
+			if act.Title != "" {
+				c.activities[i].Title = act.Title
+			}
+			if act.Description != "" {
+				c.activities[i].Description = act.Description
+			}
+			if !act.LimitDate.IsZero() {
+				c.activities[i].LimitDate = act.LimitDate
+			}
+			c.activities[i].IsCompleted = act.IsCompleted
+			return c.activities[i].ID, nil
+		}
 	}
-	oldData := c.activities[act.ID-1]
-	if act.Title != "" {
-		oldData.Title = act.Title
-	}
-	if act.Description != "" {
-		oldData.Description = act.Description
-	}
-	if !act.LimitDate.IsZero() {
-		oldData.LimitDate = act.LimitDate
-	}
-	oldData.IsCompleted = act.IsCompleted
-
-	c.activities[act.ID-1] = oldData
-
-	return oldData.ID, nil
+	return 0, ErrIDNotFound
 }
 
 func (c *Activities) DeleteActivity(id uint64) error {
@@ -87,9 +84,8 @@ func (c *Activities) DeleteActivity(id uint64) error {
 		}
 	}
 
-	
 	if toDeleteIndex != 0 {
-		fmt.Printf("Activity about to be deleted: %s", c.activities[toDeleteIndex].Title)
+		// fmt.Printf("Activity about to be deleted: %s", c.activities[toDeleteIndex].Title)
 		c.activities = append(c.activities[:toDeleteIndex], c.activities[toDeleteIndex+1:]...)
 		return nil
 	}

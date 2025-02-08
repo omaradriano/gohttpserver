@@ -48,6 +48,7 @@ func NewHttpServer(addr string) *http.Server { //Creacion de funcion la cual dev
 	// r.HandleFunc("/getActivity/{id}", activities.getActivity).Methods("GET") //POST que funcione en root /
 	r.HandleFunc("/getActivity", activities.getActivity).Methods("GET") //POST que funcione en root /
 	r.HandleFunc("/editActivity", activities.editActivity).Methods("PATCH") //POST que funcione en root /
+	r.HandleFunc("/deleteActivity", activities.deleteActivity).Methods("DELETE") //POST que funcione en root /
 
 	return &http.Server{
 		Addr: addr,
@@ -82,6 +83,7 @@ func (s *ActivitiesHandler) addActivity(w http.ResponseWriter, r *http.Request) 
 		//4. Recordar que la manera de manejar errores en las solicitudes es con http.Error
 		return
 	}
+	//Toda esta operacion de aqui la dejo por que es descriptiva (Siguientes 5 lineas)
 	inserted := s.Activities.InsertActivity(request.Activity) //5. Simulacion del manejo de persistencia. Esto basado en activities
 	response := ResponseIDDocument{ID: inserted} //6. Generar una respuesta. Aqui si debemos de usar el formato de los struct json
 	w.Header().Set("Content-Type", "application/json") //7. Asignar header ya que estamos devolviendo formato json a la respuesta
@@ -146,17 +148,12 @@ func (s *ActivitiesHandler) editActivity(w http.ResponseWriter, r *http.Request)
 	}
 
 	//Search for the given activity id
-	foundActivity := false
 	for _, activity := range s.Activities.activities {
 		if activity.ID == newData.Activity.ID {
-			foundActivity = true
+			response = ResponseError{Error:"Given id could not be found"}
+			response.LaunchResponse(w, http.StatusBadRequest)
+			return
 		}
-	}
-	if foundActivity == false {
-		fmt.Println("ehhlo")
-		response = ResponseError{Error:"Given id could not be found"}
-		response.LaunchResponse(w, )
-		return
 	}
 
 	//Manage to give a json response
@@ -169,6 +166,32 @@ func (s *ActivitiesHandler) editActivity(w http.ResponseWriter, r *http.Request)
 	response = ResponseIDDocument{
 		ID: actId,
 	}
+	response.LaunchResponse(w, http.StatusOK)
+}
+
+func (s *ActivitiesHandler) deleteActivity(w http.ResponseWriter, r *http.Request) {
+	var response JSONResponse
+
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" { //Obtencion del parametro id del query
+		response = ResponseError{Error: "Cannot retrieve id from query"}
+		response.LaunchResponse(w, http.StatusBadRequest)
+		return
+	}
+	id, parseErr := strconv.ParseUint(idStr, 10, 64) //Parseo del query param
+	if parseErr != nil {
+		response = ResponseError{Error: "Given id could not be parsed, try integer value"}
+		response.LaunchResponse(w, http.StatusBadRequest)
+		return
+	}
+	err := s.Activities.DeleteActivity(id)
+	if err != nil {
+		response = ResponseError{Error: err.Error()}
+		response.LaunchResponse(w, http.StatusOK)
+		return
+	}
+
+	response = ResponseIDDocument{ID:id}
 	response.LaunchResponse(w, http.StatusOK)
 }
 
